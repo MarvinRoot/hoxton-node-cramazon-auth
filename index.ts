@@ -12,6 +12,73 @@ app.use(express.json())
 
 const prisma = new PrismaClient()
 
+function createToken(id: number) {
+    // @ts-ignore
+    return jwt.sign({ id: id }, process.env.MY_SECRET, { expiresIn: '3days' })
+}
+
+async function getUserFromToken(token: string) {
+    // @ts-ignore
+    const decodedData = jwt.verify(token, process.env.MY_SECRET)
+    const user = await prisma.user.findUnique({
+        // @ts-ignore
+        where: { id: decodedData.id },
+        include: { Order: true }
+    })
+    return user
+}
+
+app.post('/sign-up', async (req,res) => {
+    const {name, email, password} = req.body
+
+    try{
+        const hash = bcrypt.hashSync(password, 10)
+        const newUser = await prisma.user.create({
+            data: {
+                name, email, password: hash},
+                include: { Order: { select: { itemId: true, quantity: true } } }
+        })
+        res.send({newUser, token: createToken(newUser.id)})
+    }catch(err){
+        //@ts-ignore
+        res.status(400).send({error: err.message})
+    }
+})
+
+app.post('/sign-in', async (req,res)=> {
+    const {email, password} = req.body
+
+    try{
+        const user = await prisma.user.findUnique({
+            where: { email: email },
+            include: { Order: { select: { itemId: true, quantity: true } } }
+        })
+        //@ts-ignore
+        const passwordMatch = bcrypt.compareSync(password, user.password)
+
+        if(user && passwordMatch){
+            res.send({ user, token: createToken(user.id) })
+        }else{
+            throw Error('Invalid credentials')
+        }
+    }catch(err){
+        res.status(400).send('Password or Email is invalid')
+    }
+})
+
+app.get('/validate', async (req,res) => {
+    const token = req.headers.authorization
+
+    try{
+        // @ts-ignore
+        const user = getUserFromToken(token)
+        res.send(user)
+    }catch(err){
+        // @ts-ignore
+        res.status(400).send({ error: err.message })
+    }
+})
+
 app.get('/users', async (req, res) => {
     const users = await prisma.user.findMany({ include: { Order: { select: { itemId: true, quantity: true } } } })
     res.send(users)
@@ -40,13 +107,13 @@ app.delete('/users/:id', async (req, res) => {
 })
 
 app.post('/users', async (req, res) => {
-    const { name, email } = req.body
+    const { name, email, password } = req.body
 
     try {
         const newUser = await prisma.user.create(
             {
                 data: {
-                    name, email
+                    name, email, password
                 }
             })
         res.send(newUser)

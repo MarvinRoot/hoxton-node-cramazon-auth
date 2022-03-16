@@ -5,15 +5,18 @@ const prisma = new PrismaClient()
 const users = [
     {
         name: 'Marvin',
-        email: 'marvin@mail.com'
+        email: 'marvin@mail.com',
+        password: 'marvin123'
     },
     {
         name: 'LeBron',
-        email: 'lebron@mail.com'
+        email: 'lebron@mail.com',
+        password: 'lebron123'
     },
     {
         name: 'Kurama',
-        email: 'kurama@mail.com'
+        email: 'kurama@mail.com',
+        password: 'kurama123'
     }
 ]
 
