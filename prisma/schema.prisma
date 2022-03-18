@@ -8,25 +8,26 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
   password String
-  Order Order[]
+  orders   Order[]
 }
 
 model Item {
-  id    Int     @id @default(autoincrement())
-  title String  @unique
-  image String
-  Order Order[]
+  id     Int     @id @default(autoincrement())
+  title  String  @unique
+  image  String
+  price  Float
+  orders Order[]
 }
 
 model Order {
   id       Int  @id @default(autoincrement())
+  item     Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId   Int
   itemId   Int
   quantity Int
-  item     Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

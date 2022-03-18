@@ -23,19 +23,23 @@ const users = [
 const items = [
     {
         title: 'lipstick',
-        image: 'lipstick.jpg'
+        image: 'lipstick.jpg',
+        price: 15.99
     },
     {
         title: 'basketball',
-        image: 'basketball.jpg'
+        image: 'basketball.jpg',
+        price: 24.99
     },
     {
         title: 'pants',
-        image: 'pants.jpg'
+        image: 'pants.jpg',
+        price: 50.49
     },
     {
         title: 't-shirt',
-        image: 'tshirt.jpg'
+        image: 'tshirt.jpg',
+        price: 9.99
     }
 ]
 

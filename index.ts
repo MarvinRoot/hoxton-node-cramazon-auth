@@ -23,7 +23,7 @@ async function getUserFromToken(token: string) {
     const user = await prisma.user.findUnique({
         // @ts-ignore
         where: { id: decodedData.id },
-        include: { Order: true }
+        include: { orders: true }
     })
     return user
 }
@@ -36,7 +36,7 @@ app.post('/sign-up', async (req,res) => {
         const newUser = await prisma.user.create({
             data: {
                 name, email, password: hash},
-                include: { Order: { select: { itemId: true, quantity: true } } }
+                include: { orders: {include: {item: true} } }
         })
         res.send({newUser, token: createToken(newUser.id)})
     }catch(err){
@@ -51,7 +51,7 @@ app.post('/sign-in', async (req,res)=> {
     try{
         const user = await prisma.user.findUnique({
             where: { email: email },
-            include: { Order: { select: { itemId: true, quantity: true } } }
+            include: { orders: { select: { itemId: true, quantity: true } } }
         })
         //@ts-ignore
         const passwordMatch = bcrypt.compareSync(password, user.password)
@@ -71,7 +71,7 @@ app.get('/validate', async (req,res) => {
 
     try{
         // @ts-ignore
-        const user = getUserFromToken(token)
+        const user = await getUserFromToken(token)
         res.send(user)
     }catch(err){
         // @ts-ignore
@@ -80,7 +80,7 @@ app.get('/validate', async (req,res) => {
 })
 
 app.get('/users', async (req, res) => {
-    const users = await prisma.user.findMany({ include: { Order: { select: { itemId: true, quantity: true } } } })
+    const users = await prisma.user.findMany({ include: { orders: {include: {item: true}} } })
     res.send(users)
 })
 
@@ -146,7 +146,10 @@ app.delete('/orders/:id', async (req, res) => {
 
         if (order) {
             await prisma.order.delete({ where: { id: id } })
-            res.send(order)
+            const user = await prisma.user.findFirst({where: {id: order.userId}, include: {
+                orders: {include: {item: true}}
+            }})
+            res.send(user)
         }
         else {
             res.status(400).send({ error: 'Order not found' })
@@ -154,6 +157,23 @@ app.delete('/orders/:id', async (req, res) => {
     } catch (error) {
         // @ts-ignore
         res.status(400).send(`<pre>${error.message}</pre>`)
+    }
+})
+
+app.patch('/orders/:id', async (req,res) => {
+    const id = Number(req.params.id)
+    const quantity = req.body
+    try{
+        const order = await prisma.order.findUnique({where: {id}})
+
+        if(order){
+            await prisma.order.update({where: {id}, data: { quantity:quantity}})
+        }else{
+            res.send({error: 'You cannot update order'})
+        }
+    }catch(err){
+        // @ts-ignore
+        res.status(400).send({ error: err.message })
     }
 })
 
@@ -175,7 +195,7 @@ app.post('/orders', async (req, res) => {
 })
 
 app.get('/items', async (req, res) => {
-    const items = await prisma.item.findMany({ include: { Order: { select: { userId: true, quantity: true } } } })
+    const items = await prisma.item.findMany({ include: { orders: { select: { userId: true, quantity: true } } } })
     res.send(items)
 })
 
@@ -207,22 +227,22 @@ app.delete('/items/:id', async (req, res) => {
     }
 })
 
-app.post('/items', async (req, res) => {
-    const { title, image } = req.body
+// app.post('/items', async (req, res) => {
+//     const { title, image } = req.body
 
-    try {
-        const newItem = await prisma.item.create(
-            {
-                data: {
-                    title, image
-                }
-            })
-        res.send(newItem)
-    } catch (error) {
-        // @ts-ignore
-        res.status(400).send(`<pre>${error.message}</pre>`)
-    }
-})
+//     try {
+//         const newItem = await prisma.item.create(
+//             {
+//                 data: {
+//                     title, image
+//                 }
+//             })
+//         res.send(newItem)
+//     } catch (error) {
+//         // @ts-ignore
+//         res.status(400).send(`<pre>${error.message}</pre>`)
+//     }
+// })
 
 app.listen(4000, () => {
     console.log('Server up: http://localhost:4000');
